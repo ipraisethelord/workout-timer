@@ -1,0 +1,42 @@
+.timer-container {
+    text-align: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .loop-display {
+    font-size: 2.2em;
+    margin-bottom: 20px;
+  }
+  
+  .counter {
+    margin: 20px 0;
+    font-size: 50px;
+    font-weight: bolder;
+    
+  }
+  
+  .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    font-size: 2em;
+    cursor: pointer;
+    background-color: #4c5baf;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  
+  button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  button:hover:not(:disabled) {
+    background-color: #454ea0;
+  }
