@@ -13,44 +13,13 @@ const WorkoutTimer = () => {
   const timeoutRef = useRef(null);
   const progressRef = useRef(null);
   const hasIncrementedRef = useRef(false);
-  const synthRef = useRef(window.speechSynthesis);
-  const [isSpeechSupported, setIsSpeechSupported] = useState('speechSynthesis' in window);
-  const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const synthRef = useRef(typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null);
+  const isSpeechSupported = !!synthRef.current;
 
-  // Load voices with retry mechanism for Edge Android
-  useEffect(() => {
-    if (isSpeechSupported) {
-      const loadVoices = () => {
-        const voices = synthRef.current.getVoices();
-        if (voices.length > 0) {
-          console.log('Voices loaded:', voices);
-          setVoicesLoaded(true);
-        } else {
-          console.warn('No voices available yet; retrying...');
-        }
-      };
-      synthRef.current.onvoiceschanged = () => {
-        loadVoices();
-      };
-      loadVoices(); // Initial check
-
-      // Retry loading voices for Edge Android
-      const voiceRetryInterval = setInterval(() => {
-        if (!voicesLoaded) {
-          loadVoices();
-        }
-      }, 1000); // Check every 1s
-
-      return () => clearInterval(voiceRetryInterval);
-    } else {
-      console.warn('Speech synthesis not supported in this browser');
-    }
-  }, [isSpeechSupported, voicesLoaded]);
-
-  // Speak number with robust handling
+  // Speak number with safe handling
   const speakNumber = (number) => {
-    if (!isSpeechSupported || !voicesLoaded) {
-      console.log('Speech not ready, skipping audio');
+    if (!isSpeechSupported || !synthRef.current) {
+      console.log('Speech synthesis not supported or not initialized, skipping audio');
       return;
     }
     try {
@@ -107,7 +76,7 @@ const WorkoutTimer = () => {
 
       return () => {
         clearInterval(intervalRef.current);
-        synthRef.current.cancel();
+        if (synthRef.current) synthRef.current.cancel(); // Safe cleanup
       };
     }
   }, [isRunning, isPaused, isBreaking, targetCount]);
@@ -178,7 +147,7 @@ const WorkoutTimer = () => {
         setIsPaused(true);
         clearInterval(intervalRef.current);
         clearInterval(progressRef.current);
-        synthRef.current.cancel();
+        if (synthRef.current) synthRef.current.cancel();
       }
     }
   };
@@ -191,7 +160,7 @@ const WorkoutTimer = () => {
       clearInterval(intervalRef.current);
       clearInterval(progressRef.current);
       clearTimeout(timeoutRef.current);
-      synthRef.current.cancel();
+      if (synthRef.current) synthRef.current.cancel();
       setCount(0);
       setProgress(0);
       hasIncrementedRef.current = false;
@@ -208,7 +177,7 @@ const WorkoutTimer = () => {
     clearInterval(intervalRef.current);
     clearInterval(progressRef.current);
     clearTimeout(timeoutRef.current);
-    synthRef.current.cancel();
+    if (synthRef.current) synthRef.current.cancel();
     hasIncrementedRef.current = false;
   };
 
