@@ -15,29 +15,42 @@ const WorkoutTimer = () => {
   const hasIncrementedRef = useRef(false);
   const synthRef = useRef(window.speechSynthesis);
   const [isSpeechSupported, setIsSpeechSupported] = useState('speechSynthesis' in window);
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
 
-  // Load voices and ensure availability
+  // Load voices with retry mechanism for Edge Android
   useEffect(() => {
     if (isSpeechSupported) {
       const loadVoices = () => {
         const voices = synthRef.current.getVoices();
         if (voices.length > 0) {
-          console.log('Voices available:', voices);
+          console.log('Voices loaded:', voices);
+          setVoicesLoaded(true);
         } else {
-          console.warn('No voices available yet; waiting for voiceschanged event');
+          console.warn('No voices available yet; retrying...');
         }
       };
-      synthRef.current.onvoiceschanged = loadVoices;
+      synthRef.current.onvoiceschanged = () => {
+        loadVoices();
+      };
       loadVoices(); // Initial check
+
+      // Retry loading voices for Edge Android
+      const voiceRetryInterval = setInterval(() => {
+        if (!voicesLoaded) {
+          loadVoices();
+        }
+      }, 1000); // Check every 1s
+
+      return () => clearInterval(voiceRetryInterval);
     } else {
       console.warn('Speech synthesis not supported in this browser');
     }
-  }, [isSpeechSupported]);
+  }, [isSpeechSupported, voicesLoaded]);
 
-  // Speak number with minimal interference
+  // Speak number with robust handling
   const speakNumber = (number) => {
-    if (!isSpeechSupported) {
-      console.log('Speech synthesis not supported, skipping audio');
+    if (!isSpeechSupported || !voicesLoaded) {
+      console.log('Speech not ready, skipping audio');
       return;
     }
     try {
@@ -46,9 +59,8 @@ const WorkoutTimer = () => {
         console.warn('No voices available for speech synthesis');
         return;
       }
-      synthRef.current.cancel(); // Clear only before speaking
+      synthRef.current.cancel(); // Clear pending speech
       const utterance = new SpeechSynthesisUtterance(number.toString());
-      // Set an English voice if available, fallback to first voice
       utterance.voice = voices.find((voice) => voice.lang.includes('en')) || voices[0];
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event.error);
@@ -115,14 +127,13 @@ const WorkoutTimer = () => {
     }
   }, [isBreaking]);
 
-  // Smooth progress animation with adaptive steps
+  // Progress animation with minimal steps for Bing Android
   useEffect(() => {
     if (isRunning && !isPaused && !isBreaking) {
       const startProgress = (count - 1) / targetCount * 100;
       const endProgress = count / targetCount * 100;
-      // Reduce steps for Bing Android to prevent crash
       const isBingAndroid = /Android.*Bing/i.test(navigator.userAgent);
-      const steps = isBingAndroid ? 20 : 200; // 20 steps (50ms) for Bing Android, 200 (5ms) elsewhere
+      const steps = isBingAndroid ? 10 : 200; // 10 steps (100ms) for Bing, 200 (5ms) elsewhere
       const stepDuration = 1000 / steps;
 
       progressRef.current = setInterval(() => {
