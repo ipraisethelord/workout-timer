@@ -17,10 +17,34 @@ const WorkoutTimer = () => {
 
   // Function to play number sound with queue clearing
   const speakNumber = (number) => {
-    synthRef.current.cancel();
-    const utterance = new SpeechSynthesisUtterance(number.toString());
-    synthRef.current.speak(utterance);
+    try {
+      const voices = synthRef.current.getVoices();
+      if (voices.length === 0) {
+        console.warn('No voices available for speech synthesis');
+        return; // Skip speaking if no voices
+      }
+      synthRef.current.cancel();
+      const utterance = new SpeechSynthesisUtterance(number.toString());
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+      };
+      synthRef.current.speak(utterance);
+    } catch (error) {
+      console.error('Error in speakNumber:', error);
+    }
   };
+  
+  // Ensure voices are loaded on startup
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        console.log('Voices loaded:', voices);
+      }
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // Initial check
+  }, []);
 
   // Handle target count input change
   const handleTargetCountChange = (e) => {
