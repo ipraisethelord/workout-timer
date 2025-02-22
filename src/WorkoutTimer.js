@@ -7,24 +7,49 @@ const WorkoutTimer = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isBreaking, setIsBreaking] = useState(false);
-  const [targetCount, setTargetCount] = useState(10); // Default to 10
-  const [progress, setProgress] = useState(0); // Smooth progress
+  const [targetCount, setTargetCount] = useState(10);
+  const [progress, setProgress] = useState(0);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
   const progressRef = useRef(null);
   const hasIncrementedRef = useRef(false);
   const synthRef = useRef(window.speechSynthesis);
+  const [isSpeechSupported, setIsSpeechSupported] = useState('speechSynthesis' in window);
 
-  // Function to play number sound with queue clearing
+  // Load voices and ensure availability
+  useEffect(() => {
+    if (isSpeechSupported) {
+      const loadVoices = () => {
+        const voices = synthRef.current.getVoices();
+        if (voices.length > 0) {
+          console.log('Voices available:', voices);
+        } else {
+          console.warn('No voices available yet; waiting for voiceschanged event');
+        }
+      };
+      synthRef.current.onvoiceschanged = loadVoices;
+      loadVoices(); // Initial check
+    } else {
+      console.warn('Speech synthesis not supported in this browser');
+    }
+  }, [isSpeechSupported]);
+
+  // Speak number with minimal interference
   const speakNumber = (number) => {
+    if (!isSpeechSupported) {
+      console.log('Speech synthesis not supported, skipping audio');
+      return;
+    }
     try {
       const voices = synthRef.current.getVoices();
       if (voices.length === 0) {
         console.warn('No voices available for speech synthesis');
-        return; // Skip speaking if no voices
+        return;
       }
-      synthRef.current.cancel();
+      synthRef.current.cancel(); // Clear only before speaking
       const utterance = new SpeechSynthesisUtterance(number.toString());
+      // Set an English voice if available, fallback to first voice
+      utterance.voice = voices.find((voice) => voice.lang.includes('en')) || voices[0];
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event.error);
       };
@@ -33,18 +58,6 @@ const WorkoutTimer = () => {
       console.error('Error in speakNumber:', error);
     }
   };
-  
-  // Ensure voices are loaded on startup
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        console.log('Voices loaded:', voices);
-      }
-    };
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices(); // Initial check
-  }, []);
 
   // Handle target count input change
   const handleTargetCountChange = (e) => {
@@ -59,7 +72,6 @@ const WorkoutTimer = () => {
   // Counting logic
   useEffect(() => {
     if (isRunning && !isPaused && !isBreaking) {
-      const synth = synthRef.current;
       intervalRef.current = setInterval(() => {
         setCount((prevCount) => {
           if (prevCount < targetCount) {
@@ -83,7 +95,7 @@ const WorkoutTimer = () => {
 
       return () => {
         clearInterval(intervalRef.current);
-        synth.cancel();
+        synthRef.current.cancel();
       };
     }
   }, [isRunning, isPaused, isBreaking, targetCount]);
@@ -103,14 +115,15 @@ const WorkoutTimer = () => {
     }
   }, [isBreaking]);
 
-  // Smooth progress animation with 200 steps
+  // Smooth progress animation with adaptive steps
   useEffect(() => {
     if (isRunning && !isPaused && !isBreaking) {
       const startProgress = (count - 1) / targetCount * 100;
       const endProgress = count / targetCount * 100;
-      let currentProgress = startProgress;
-      const steps = 200; // Increased to 200 steps
-      const stepDuration = 1000 / steps; // 5ms per step (1000ms / 200)
+      // Reduce steps for Bing Android to prevent crash
+      const isBingAndroid = /Android.*Bing/i.test(navigator.userAgent);
+      const steps = isBingAndroid ? 20 : 200; // 20 steps (50ms) for Bing Android, 200 (5ms) elsewhere
+      const stepDuration = 1000 / steps;
 
       progressRef.current = setInterval(() => {
         setProgress((prevProgress) => {
@@ -195,10 +208,7 @@ const WorkoutTimer = () => {
         {count}
       </h2>
       <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: `${progress}%` }}
-        ></div>
+        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
       </div>
       <div className="input-container">
         <label htmlFor="targetCount">Count to: </label>
