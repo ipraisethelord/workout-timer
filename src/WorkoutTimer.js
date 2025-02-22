@@ -6,11 +6,13 @@ const WorkoutTimer = () => {
   const [loopCount, setLoopCount] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [isBreaking, setIsBreaking] = useState(false); // New state for break
-  const [targetCount, setTargetCount] = useState(100); // Default to 100
+  const [isBreaking, setIsBreaking] = useState(false);
+  const [targetCount, setTargetCount] = useState(10); // Default to 10
+  const [progress, setProgress] = useState(0); // Smooth progress
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
-  const hasIncrementedRef = useRef(false); // Flag to prevent double increment
+  const progressRef = useRef(null);
+  const hasIncrementedRef = useRef(false);
   const synthRef = useRef(window.speechSynthesis);
 
   // Function to play number sound with queue clearing
@@ -26,7 +28,7 @@ const WorkoutTimer = () => {
     if (!isNaN(value) && value > 0) {
       setTargetCount(value);
     } else if (e.target.value === '') {
-      setTargetCount(''); // Allow empty input while typing
+      setTargetCount('');
     }
   };
 
@@ -43,12 +45,13 @@ const WorkoutTimer = () => {
           } else {
             clearInterval(intervalRef.current);
             if (!hasIncrementedRef.current) {
-              setLoopCount((prev) => prev + 1); // Increment only once
-              hasIncrementedRef.current = true; // Mark as incremented
+              setLoopCount((prev) => prev + 1);
+              hasIncrementedRef.current = true;
             }
             setCount(0);
+            setProgress(0);
             setIsRunning(false);
-            setIsBreaking(true); // Enter break state
+            setIsBreaking(true);
             return targetCount;
           }
         });
@@ -69,12 +72,36 @@ const WorkoutTimer = () => {
         speakNumber(1);
         setIsBreaking(false);
         setIsRunning(true);
-        hasIncrementedRef.current = false; // Reset flag for next loop
+        hasIncrementedRef.current = false;
       }, 5000);
 
       return () => clearTimeout(timeoutRef.current);
     }
   }, [isBreaking]);
+
+  // Smooth progress animation with 200 steps
+  useEffect(() => {
+    if (isRunning && !isPaused && !isBreaking) {
+      const startProgress = (count - 1) / targetCount * 100;
+      const endProgress = count / targetCount * 100;
+      let currentProgress = startProgress;
+      const steps = 200; // Increased to 200 steps
+      const stepDuration = 1000 / steps; // 5ms per step (1000ms / 200)
+
+      progressRef.current = setInterval(() => {
+        setProgress((prevProgress) => {
+          if (prevProgress < endProgress) {
+            const increment = (endProgress - startProgress) / steps;
+            return Math.min(prevProgress + increment, endProgress);
+          }
+          clearInterval(progressRef.current);
+          return prevProgress;
+        });
+      }, stepDuration);
+
+      return () => clearInterval(progressRef.current);
+    }
+  }, [count, isRunning, isPaused, isBreaking, targetCount]);
 
   // Button handlers
   const handleStart = () => {
@@ -84,6 +111,7 @@ const WorkoutTimer = () => {
       clearTimeout(timeoutRef.current);
       if (count === 0) {
         setCount(1);
+        setProgress(1 / targetCount * 100);
         speakNumber(1);
       }
     }
@@ -101,6 +129,7 @@ const WorkoutTimer = () => {
       } else {
         setIsPaused(true);
         clearInterval(intervalRef.current);
+        clearInterval(progressRef.current);
         synthRef.current.cancel();
       }
     }
@@ -112,9 +141,11 @@ const WorkoutTimer = () => {
       setIsPaused(false);
       setIsBreaking(false);
       clearInterval(intervalRef.current);
+      clearInterval(progressRef.current);
       clearTimeout(timeoutRef.current);
       synthRef.current.cancel();
       setCount(0);
+      setProgress(0);
       hasIncrementedRef.current = false;
     }
   };
@@ -124,8 +155,10 @@ const WorkoutTimer = () => {
     setIsPaused(false);
     setIsBreaking(false);
     setCount(0);
+    setProgress(0);
     setLoopCount(0);
     clearInterval(intervalRef.current);
+    clearInterval(progressRef.current);
     clearTimeout(timeoutRef.current);
     synthRef.current.cancel();
     hasIncrementedRef.current = false;
@@ -137,6 +170,12 @@ const WorkoutTimer = () => {
       <h2 className="counter" style={{ color: 'red' }}>
         {count}
       </h2>
+      <div className="progress-bar">
+        <div
+          className="progress-fill"
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
       <div className="input-container">
         <label htmlFor="targetCount">Count to: </label>
         <input

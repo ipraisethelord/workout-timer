@@ -1,42 +1,132 @@
+/* Reset default margins and ensure full height for responsiveness */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .timer-container {
-    text-align: center;
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 2vw;
+  font-family: Arial, sans-serif;
+  color: #454ea0;
+  font-weight: bolder;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.loop-display {
+  font-size: clamp(2rem, 8vw, 4rem);
+  margin-bottom: 2vw;
+}
+
+.counter {
+  margin: 2vw 0;
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: bolder;
+}
+
+.input-container {
+  margin: 2vw 1vw 1vw 1vw;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-weight: bolder;
+}
+
+.input-container input {
+  margin: 1vw;
+  height: clamp(30px, 5vw, 50px);
+  font-size: clamp(1rem, 2.5vw, 1.8rem);
+  width: clamp(80px, 20vw, 150px);
+  padding: 0.5vw;
+  border: 1px solid #454ea0;
+  border-radius: 5px;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: clamp(5px, 1.5vw, 15px);
+  flex-wrap: wrap;
+  margin-top: 2vw;
+}
+
+button {
+  padding: clamp(8px, 1.5vw, 15px) clamp(15px, 2.5vw, 25px);
+  font-size: clamp(1rem, 2.5vw, 2rem);
+  cursor: pointer;
+  background-color: #4c5baf;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  min-width: clamp(80px, 15vw, 120px);
+}
+
+button:disabled {
+  background-color: #cccccc;
+}
+
+button:hover:not(:disabled) {
+  background-color: #454ea0;
+}
+
+/* Progress bar styles */
+.progress-bar {
+  width: clamp(200px, 80%, 400px);
+  height: clamp(20px, 4vw, 40px);
+  margin: 1vw auto;
+  border: 2px solid #16b63e; /* 4-sided border */
+  border-radius: 5px;
+  background-color: #f0f0f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  border-radius: 3px;
+  transition: width 0.005s linear; /* Updated to 5ms for 200 steps */
+}
+
+/* Media Queries for Fine-Tuning */
+@media (max-width: 768px) { /* Tablet */
+  .timer-container {
+    padding: 3vw;
   }
-  
-  .loop-display {
-    font-size: 2.2em;
-    margin-bottom: 20px;
-  }
-  
-  .counter {
-    margin: 20px 0;
-    font-size: 50px;
-    font-weight: bolder;
-    
-  }
-  
   .buttons {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
+    flex-direction: column;
+    gap: 2vw;
   }
-  
+  .input-container input {
+    width: clamp(100px, 30vw, 200px);
+  }
+}
+
+@media (max-width: 480px) { /* Phone */
+  .timer-container {
+    padding: 4vw;
+  }
+  .loop-display {
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+  }
+  .counter {
+    font-size: clamp(1.5rem, 7vw, 3rem);
+  }
+  .input-container {
+    font-size: clamp(1rem, 4vw, 1.5rem);
+  }
+  .input-container input {
+    font-size: clamp(0.9rem, 3vw, 1.2rem);
+    height: clamp(25px, 6vw, 40px);
+  }
+  .buttons {
+    gap: 3vw;
+  }
   button {
-    padding: 10px 20px;
-    font-size: 2em;
-    cursor: pointer;
-    background-color: #4c5baf;
-    color: white;
-    border: none;
-    border-radius: 5px;
+    font-size: clamp(0.9rem, 3vw, 1.5rem);
+    min-width: clamp(60px, 20vw, 100px);
   }
-  
-  button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  button:hover:not(:disabled) {
-    background-color: #454ea0;
-  }
+}
